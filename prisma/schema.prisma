@@ -91,8 +91,13 @@ model Avaliation {
 model UserProfile {
   id             Int       @id @default(autoincrement())
   name           String?
-  credentialPrivateEmail String
-  publicEmail    String?
+  password       String
+
+  credentialPrivateEmail String @unique()
+  isEmailVerified  Boolean  @default(false)
+  emailVerificationToken String?
+
+  publicEmail    String? @unique()
   phone          String?
   profileImage   String?   
   memberSince    DateTime

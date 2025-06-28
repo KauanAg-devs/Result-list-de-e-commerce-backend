@@ -18,7 +18,9 @@ export class UsersService {
     });
   }
 
-  async delete(userProfileWhereUniqueInput: Prisma.UserProfileWhereUniqueInput) {
+  async delete(
+    userProfileWhereUniqueInput: Prisma.UserProfileWhereUniqueInput,
+  ) {
     return this.prisma.userProfile.delete({
       where: userProfileWhereUniqueInput,
     });
@@ -31,6 +33,16 @@ export class UsersService {
     return this.prisma.userProfile.update({
       where: userProfileWhereUniqueInput,
       data: userProfileUpdateInput,
+    });
+  }
+
+  async markEmailAsVerified(userId: number) {
+    return this.prisma.userProfile.update({
+      where: { id: userId },
+      data: {
+        emailVerificationToken: null,
+        isEmailVerified: true,
+      },
     });
   }
 }
