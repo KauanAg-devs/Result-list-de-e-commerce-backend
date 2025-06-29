@@ -9,6 +9,9 @@ export class UsersService {
   async user(userProfileWhereUniqueInput: Prisma.UserProfileWhereUniqueInput) {
     return this.prisma.userProfile.findUnique({
       where: userProfileWhereUniqueInput,
+      include: {
+        roles: true
+      }
     });
   }
 
