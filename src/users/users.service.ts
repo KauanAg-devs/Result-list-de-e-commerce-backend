@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { UpdateUserDto } from './dto/update.users.dto';
 
 @Injectable()
 export class UsersService {
@@ -10,8 +11,8 @@ export class UsersService {
     return this.prisma.userProfile.findUnique({
       where: userProfileWhereUniqueInput,
       include: {
-        roles: true
-      }
+        roles: true,
+      },
     });
   }
 
@@ -29,13 +30,16 @@ export class UsersService {
     });
   }
 
-  async update(
-    userProfileWhereUniqueInput: Prisma.UserProfileWhereUniqueInput,
-    userProfileUpdateInput: Prisma.UserProfileUpdateInput,
-  ) {
+  async update(userProfile: UpdateUserDto) {
     return this.prisma.userProfile.update({
-      where: userProfileWhereUniqueInput,
-      data: userProfileUpdateInput,
+      where: { id: userProfile.id },
+      data: {
+        name: userProfile.name,
+        phone: userProfile.phone ?? null,
+        profileImage: userProfile.profileImage ?? null,
+        publicEmail: userProfile.publicEmail ?? null,
+      },
+      include: {roles: true}
     });
   }
 

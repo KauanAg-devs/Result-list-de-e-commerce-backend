@@ -71,24 +71,16 @@ EMAIL_RESEND_API_KEY=your_resend_api_key
 BACKEND_URI=http://localhost:3000
 ```
 
-### 4. Rodar o banco com Docker
+### 4. Rodar a Aplicação
 
 ```bash
-docker compose up -d
-```
+npm run setup
 
-### 5. Aplicar as migrations
-
-```bash
-npx prisma migrate dev
-```
-
----
-
-## ▶️ Iniciar o servidor
-
-```bash
-npm run start:dev
+#npm run check-env && docker compose up -d && npx prisma migrate dev && npm run start:dev
+#Este comando verifica se o .env foi preenchido
+#Roda o banco de dados via Docker
+#Conecta o Prisma ao banco
+#Roda a aplicação
 ```
 
 O servidor estará disponível em: [http://localhost:3000](http://localhost:3000)

@@ -84,7 +84,7 @@ export class AuthService {
 
       const data: Prisma.UserProfileCreateInput = {
         credentialPrivateEmail:
-        createUserProfileDTO.email.credentialPrivateEmail,
+          createUserProfileDTO.email.credentialPrivateEmail,
         publicEmail: createUserProfileDTO.email.publicEmail,
         password: hashedPassword,
         memberSince: new Date(),
@@ -183,7 +183,10 @@ export class AuthService {
 
       return {
         id: user.id,
-        email: user.credentialPrivateEmail,
+        email: {
+          credendialPrivateEmail: user.credentialPrivateEmail,
+          publicEmail: user.publicEmail,
+        },
         name: user.name,
         isEmailVerified: user.isEmailVerified,
         profileImage: user.profileImage,
