@@ -198,4 +198,33 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
+
+  async refresh(@Req() req: Request, @Res() res: Response) {
+  const refreshToken = req.cookies['refresh_token'];
+  if (!refreshToken) {
+    throw new UnauthorizedException('Refresh token ausente');
+  }
+
+  try {
+    const decoded = await this.jwtService.verifyAsync(refreshToken, {
+      secret: process.env.JWT_REFRESH_SECRET_KEY,
+    });
+    const payload = { sub: decoded.sub, email: decoded.email };
+    const newAccessToken = await this.jwtService.signAsync(payload, {
+      expiresIn: '15m',
+    });
+
+    res.cookie('access_token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    return res.json({ message: 'Token renovado com sucesso' });
+  } catch (err) {
+    throw new UnauthorizedException('Refresh token inválido ou expirado');
+  }
+}
+
 }

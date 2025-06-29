@@ -8,11 +8,14 @@ import {
   Query,
   Res,
   Req,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import { CreateUserDTO } from '../dto/create.user.dto';
 import { Request, Response } from 'express';
 import { SigninDTO } from '../dto/signin.dto';
+import { AuthGuard } from '../auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -37,12 +40,20 @@ export class AuthController {
     @Body() body: SigninDTO,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const {password, credentialPrivateEmail} = body
+    const { password, credentialPrivateEmail } = body;
     return this.authService.signin(credentialPrivateEmail, password, response);
   }
 
+  @UseGuards(AuthGuard)
   @Get('me')
   async me(@Req() req: Request) {
-   return this.authService.me(req)
+    return this.authService.me(req);
+  }
+
+ @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() req: Request, @Res() res: Response) {
+   await this.authService.refresh(req, res)
   }
 }
+
