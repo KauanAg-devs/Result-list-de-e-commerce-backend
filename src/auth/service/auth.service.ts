@@ -5,8 +5,6 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
-  Res,
-  Req,
 } from '@nestjs/common';
 import { UsersService } from '../../users/users.service';
 import { CreateUserDTO } from '../dto/create.user.dto';
@@ -16,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { sendEmail } from 'src/utils/send.email.verification';
 import { Response, Request } from 'express';
+import { SessionService } from 'src/session/session.service';
 
 type User = {
   id: number;
@@ -34,10 +33,15 @@ type User = {
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private jwtService: JwtService,
+    private readonly jwtService: JwtService,
+    private readonly sessionService: SessionService,
   ) {}
 
-  private async issueTokensAndSetCookies(user: User, response: Response) {
+  private async issueTokensAndSetCookies(
+    request: Request,
+    response: Response,
+    user: User,
+  ) {
     const payload = { sub: user.id, email: user.credentialPrivateEmail };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -62,10 +66,13 @@ export class AuthService {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       sameSite: 'lax',
     });
+
+    await this.sessionService.createOne(request, refreshToken, user);
   }
 
   async signUp(
-    @Res({ passthrough: true }) response: Response,
+    request: Request,
+    response: Response,
     createUserProfileDTO: CreateUserDTO,
   ) {
     try {
@@ -101,7 +108,7 @@ export class AuthService {
       const user = await this.usersService.create(data);
 
       await sendEmail(user.credentialPrivateEmail, verificationToken);
-      await this.issueTokensAndSetCookies(user, response);
+      await this.issueTokensAndSetCookies(request, response, user);
 
       return {
         message: 'Account created successfully. Please verify your email.',
@@ -146,12 +153,12 @@ export class AuthService {
   }
 
   async signin(
-    credentialPrivateEmail: CreateUserDTO['email']['credentialPrivateEmail'],
+    credentialPrivateEmail: string,
     password: CreateUserDTO['password'],
-    @Res({ passthrough: true }) response: Response,
+    request: Request,
+    response: Response,
   ) {
     const user = await this.usersService.user({ credentialPrivateEmail });
-
     if (!user) {
       throw new NotFoundException({ message: 'User not found.' });
     }
@@ -164,12 +171,12 @@ export class AuthService {
       });
     }
 
-    await this.issueTokensAndSetCookies(user, response);
+    await this.issueTokensAndSetCookies(request, response, user);
 
     return { message: 'Signed in successfully.' };
   }
 
-  async me(@Req() req: Request) {
+  async me(req: Request) {
     try {
       const token = req.cookies['access_token'];
       if (!token) throw new UnauthorizedException('No access token found');
@@ -199,32 +206,47 @@ export class AuthService {
     }
   }
 
-  async refresh(@Req() req: Request, @Res() res: Response) {
-  const refreshToken = req.cookies['refresh_token'];
-  if (!refreshToken) {
-    throw new UnauthorizedException('Refresh token ausente');
-  }
+  async refresh(req: Request, res: Response) {
+    const token = req.cookies?.refresh_token;
+    if (!token) {
+      res.status(401).json({ message: 'Refresh token ausente' });
+      return;
+    }
 
-  try {
-    const decoded = await this.jwtService.verifyAsync(refreshToken, {
-      secret: process.env.JWT_REFRESH_SECRET_KEY,
-    });
-    const payload = { sub: decoded.sub, email: decoded.email };
+    const session = await this.sessionService.findOne(token);
+
+    if (!session || session.revoked || session.expiresAt < new Date()) {
+      throw new UnauthorizedException('Sessão inválida ou expirada');
+    }
+
+    const payload = {
+      sub: session.user.id,
+      email: session.user.credentialPrivateEmail,
+    };
+
     const newAccessToken = await this.jwtService.signAsync(payload, {
       expiresIn: '15m',
     });
 
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 15 * 60 * 1000,
     });
 
-    return res.json({ message: 'Token renovado com sucesso' });
-  } catch (err) {
-    throw new UnauthorizedException('Refresh token inválido ou expirado');
+    return { message: 'Token renovado com sucesso' };
   }
-}
 
+  async logout(req: Request, res: Response) {
+    const token = req.cookies?.refresh_token;
+    if (token) {
+      await this.sessionService.revoke(token);
+    }
+
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+
+    return { message: 'Deslogado com sucesso' };
+  }
 }

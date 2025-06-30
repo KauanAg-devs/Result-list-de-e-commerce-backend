@@ -9,7 +9,6 @@ import {
   Res,
   Req,
   UseGuards,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import { CreateUserDTO } from '../dto/create.user.dto';
@@ -24,10 +23,11 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @Post('signup')
   signIn(
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
     @Body() CreateUserDTO: CreateUserDTO,
   ) {
-    return this.authService.signUp(response, CreateUserDTO);
+    return this.authService.signUp(request, response, CreateUserDTO);
   }
 
   @Get('verify-email')
@@ -38,10 +38,17 @@ export class AuthController {
   @Post('signin')
   async signin(
     @Body() body: SigninDTO,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     const { password, credentialPrivateEmail } = body;
-    return this.authService.signin(credentialPrivateEmail, password, response);
+
+    return this.authService.signin(
+      credentialPrivateEmail,
+      password,
+      request,
+      response,
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -50,10 +57,17 @@ export class AuthController {
     return this.authService.me(req);
   }
 
- @Post('refresh')
+  @Post('logout')
   @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: Request, @Res() res: Response) {
+    const logout = await this.authService.logout(req, res)
+    return res
+      .status(200)
+      .send({ message: logout});
+  }
+
+  @Post('refresh')
   async refresh(@Req() req: Request, @Res() res: Response) {
-   await this.authService.refresh(req, res)
+    this.authService.refresh(req, res);
   }
 }
-
