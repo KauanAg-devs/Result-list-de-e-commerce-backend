@@ -9,19 +9,19 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update.users.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AccessTokenGuard } from 'src/auth/guards/access.token.guard';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AccessTokenGuard)
   @Post('update')
   @HttpCode(HttpStatus.OK)
   async update(@Body() userProfile: UpdateUserDto) {
     try {
-     const updatedUser = await this.usersService.update(userProfile);
-     return {
+      const updatedUser = await this.usersService.update(userProfile);
+      return {
         id: updatedUser.id,
         email: {
           credendialPrivateEmail: updatedUser.credentialPrivateEmail,

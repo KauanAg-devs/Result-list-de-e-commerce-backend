@@ -216,7 +216,7 @@ export class AuthService {
     const session = await this.sessionService.findOne(token);
 
     if (!session || session.revoked || session.expiresAt < new Date()) {
-      throw new UnauthorizedException('Sessão inválida ou expirada');
+     return res.status(401).json({message: 'Sessão inválida ou expirada'});
     }
 
     const payload = {

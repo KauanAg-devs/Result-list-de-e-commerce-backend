@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 
-export function validateRequest(request: Request): boolean {
+export function validateAccessToken(request: Request): boolean {
   const token = request.cookies?.access_token;
 
   if (!token) {

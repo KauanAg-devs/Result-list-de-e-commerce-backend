@@ -6,7 +6,9 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: Request) => {
+        return req['cookies'].access_token;
+      },
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET_KEY as string,
     });
