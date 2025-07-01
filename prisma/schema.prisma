@@ -95,8 +95,8 @@ model UserProfile {
 
   credentialPrivateEmail String @unique()
   isEmailVerified  Boolean  @default(false)
-  emailVerificationToken String?
-
+  emailVerificationCode String?
+  emailVerificationExpiry DateTime?
   publicEmail    String? @unique()
   phone          String?
   profileImage   String?   

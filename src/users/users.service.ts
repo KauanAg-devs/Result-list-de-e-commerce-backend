@@ -15,6 +15,26 @@ export class UsersService {
       },
     });
   }
+  
+  async updateEmailVerificationCode(
+    userId: number,
+    code: string,
+    expiry: Date,
+  ) {
+    return this.prisma.userProfile.update({
+      where: { id: userId },
+      data: {
+        emailVerificationCode: code,
+        emailVerificationExpiry: expiry,
+      },
+    });
+  }
+
+  async findByEmailVerificationCode(emailVerificationCode: string) {
+    return this.prisma.userProfile.findFirst({
+      where: { emailVerificationCode },
+    });
+  }
 
   async create(userProfileCreateInput: Prisma.UserProfileCreateInput) {
     return this.prisma.userProfile.create({
@@ -39,7 +59,7 @@ export class UsersService {
         profileImage: userProfile.profileImage ?? null,
         publicEmail: userProfile.publicEmail ?? null,
       },
-      include: {roles: true}
+      include: { roles: true },
     });
   }
 
@@ -47,7 +67,8 @@ export class UsersService {
     return this.prisma.userProfile.update({
       where: { id: userId },
       data: {
-        emailVerificationToken: null,
+        emailVerificationCode: null,
+        emailVerificationExpiry: null,
         isEmailVerified: true,
       },
     });

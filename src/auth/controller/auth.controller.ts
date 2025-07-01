@@ -23,19 +23,31 @@ export class AuthController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('signup')
-  signIn(
+  signUp(@Body() createUserDTO: CreateUserDTO) {
+    return this.authService.signUp(createUserDTO);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-email')
+  async verifyEmail(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-    @Body() CreateUserDTO: CreateUserDTO,
+    @Body() body: { verificationCode: string },
   ) {
-    return this.authService.signUp(request, response, CreateUserDTO);
+    return this.authService.validateEmail(
+      request,
+      response,
+      body.verificationCode,
+    );
   }
 
-  @Get('verify-email')
-  async verifyEmail(@Query('token') token: string) {
-    return this.authService.validateEmail(token);
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-email-verification')
+  async resendVerificationCode(@Body() body: { email: string }) {
+    return this.authService.resendVerificationCode(body.email);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('signin')
   async signin(
     @Body() body: SigninDTO,
@@ -61,14 +73,15 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: Request, @Res() res: Response) {
-    const logout = await this.authService.logout(req, res);
-    return res.status(200).send({ message: logout });
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.logout(req, res);
+    return result;
   }
 
   @UseGuards(RefreshTokenGuard)
   @Post('refresh')
-  async refresh(@Req() req: Request, @Res() res: Response) {
-    this.authService.refresh(req, res);
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.refresh(req, res);
   }
 }

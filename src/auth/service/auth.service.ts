@@ -22,7 +22,8 @@ type User = {
   password: string;
   credentialPrivateEmail: string;
   isEmailVerified: boolean;
-  emailVerificationToken: string | null;
+  emailVerificationCode: string | null;
+  emailVerificationExpiry: Date | null;
   publicEmail: string | null;
   phone: string | null;
   profileImage: string | null;
@@ -70,24 +71,36 @@ export class AuthService {
     await this.sessionService.createOne(request, refreshToken, user);
   }
 
-  async signUp(
-    request: Request,
-    response: Response,
-    createUserProfileDTO: CreateUserDTO,
-  ) {
+  private async generateAndSendVerificationCode(user: User) {
+    const emailVerificationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+
+    const emailVerificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
+
+    // Atualizar o usuário com o novo código
+    await this.usersService.updateEmailVerificationCode(
+      user.id,
+      emailVerificationCode,
+      emailVerificationExpiry,
+    );
+
+    // Enviar email
+    await sendEmail(user.credentialPrivateEmail, emailVerificationCode);
+  }
+
+  async signUp(createUserProfileDTO: CreateUserDTO) {
     try {
       const hashedPassword = await bcrypt.hash(
         createUserProfileDTO.password,
         10,
       );
 
-      const verificationToken = await this.jwtService.signAsync(
-        { sub: createUserProfileDTO.email.credentialPrivateEmail },
-        {
-          expiresIn: '30m',
-          secret: process.env.JWT_EMAIL_VERIFICATION_SECRET,
-        },
-      );
+      const emailVerificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+
+      const emailVerificationExpiry = new Date(Date.now() + 30 * 60 * 1000);
 
       const data: Prisma.UserProfileCreateInput = {
         credentialPrivateEmail:
@@ -95,7 +108,8 @@ export class AuthService {
         publicEmail: createUserProfileDTO.email.publicEmail,
         password: hashedPassword,
         memberSince: new Date(),
-        emailVerificationToken: verificationToken,
+        emailVerificationCode,
+        emailVerificationExpiry,
         roles: {
           create: [
             {
@@ -107,9 +121,7 @@ export class AuthService {
 
       const user = await this.usersService.create(data);
 
-      await sendEmail(user.credentialPrivateEmail, verificationToken);
-      await this.issueTokensAndSetCookies(request, response, user);
-
+      await sendEmail(user.credentialPrivateEmail, emailVerificationCode);
       return {
         message: 'Account created successfully. Please verify your email.',
       };
@@ -118,7 +130,7 @@ export class AuthService {
         error instanceof PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException('Email is already registered.');
+        throw new ConflictException('Account is already registered.');
       }
 
       console.error(error);
@@ -126,29 +138,29 @@ export class AuthService {
     }
   }
 
-  async validateEmail(token: string) {
-    if (!token) throw new BadRequestException('Token is missing.');
+  async validateEmail(
+    request: Request,
+    response: Response,
+    verificationCode: string,
+  ) {
+    if (!verificationCode) throw new BadRequestException('Token is missing.');
 
-    let email: string;
+    const user =
+      await this.usersService.findByEmailVerificationCode(verificationCode);
 
-    try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_EMAIL_VERIFICATION_SECRET,
-      });
-
-      email = payload.sub;
-    } catch (err) {
-      throw new BadRequestException('Invalid or expired token.');
+    if (!user) {
+      throw new BadRequestException('Código de verificação inválido.');
     }
 
-    const user = await this.usersService.user({
-      credentialPrivateEmail: email,
-    });
-
-    if (!user) throw new BadRequestException('User not found.');
+    if (
+      !user.emailVerificationExpiry ||
+      user.emailVerificationExpiry < new Date()
+    ) {
+      throw new BadRequestException('Código de verificação expirado.');
+    }
 
     await this.usersService.markEmailAsVerified(user.id);
-
+    await this.issueTokensAndSetCookies(request, response, user);
     return { message: 'Email successfully verified.' };
   }
 
@@ -171,9 +183,38 @@ export class AuthService {
       });
     }
 
+    // Verificar se o email está verificado
+    if (!user.isEmailVerified) {
+      // Gerar e enviar novo código de verificação
+      await this.generateAndSendVerificationCode(user);
+      
+      throw new UnauthorizedException({
+        message: 'Email not verified. A new verification code has been sent to your email.',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+    }
+
     await this.issueTokensAndSetCookies(request, response, user);
 
     return { message: 'Signed in successfully.' };
+  }
+
+  async resendVerificationCode(credentialPrivateEmail: string) {
+    const user = await this.usersService.user({ credentialPrivateEmail });
+    
+    if (!user) {
+      throw new NotFoundException({ message: 'User not found.' });
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified.');
+    }
+
+    await this.generateAndSendVerificationCode(user);
+
+    return {
+      message: 'New verification code sent to your email.',
+    };
   }
 
   async me(req: Request) {
@@ -216,7 +257,7 @@ export class AuthService {
     const session = await this.sessionService.findOne(token);
 
     if (!session || session.revoked || session.expiresAt < new Date()) {
-     return res.status(401).json({message: 'Sessão inválida ou expirada'});
+      return res.status(401).json({ message: 'Sessão inválida ou expirada' });
     }
 
     const payload = {
