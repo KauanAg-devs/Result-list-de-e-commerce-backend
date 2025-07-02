@@ -78,14 +78,12 @@ export class AuthService {
 
     const emailVerificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
 
-    // Atualizar o usuário com o novo código
     await this.usersService.updateEmailVerificationCode(
       user.id,
       emailVerificationCode,
       emailVerificationExpiry,
     );
 
-    // Enviar email
     await sendEmail(user.credentialPrivateEmail, emailVerificationCode);
   }
 
@@ -183,9 +181,7 @@ export class AuthService {
       });
     }
 
-    // Verificar se o email está verificado
     if (!user.isEmailVerified) {
-      // Gerar e enviar novo código de verificação
       await this.generateAndSendVerificationCode(user);
       
       throw new UnauthorizedException({

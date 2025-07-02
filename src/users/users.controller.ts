@@ -15,6 +15,13 @@ import { AccessTokenGuard } from 'src/auth/guards/access.token.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Post('findById')
+  async findUserById(@Body() {id}: {id: number}){    
+    return this.usersService.user({
+      id
+    })
+  }
+
   @UseGuards(AccessTokenGuard)
   @Post('update')
   @HttpCode(HttpStatus.OK)

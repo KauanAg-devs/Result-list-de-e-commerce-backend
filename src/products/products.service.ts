@@ -25,6 +25,17 @@ export class ProductsService {
   async findVariant(sku: string) {
     return this.prisma.variant.findUnique({
       where: { sku },
+      include: {
+        product: {
+          include: {
+            variants: true,
+            default: true,
+            options: { include: { values: true } },
+          },
+        },
+        defaultForProduct: true,
+        avaliations: true,
+      },
     });
   }
 
@@ -40,8 +51,13 @@ export class ProductsService {
         id: 'asc',
       },
       include: {
+        default: true,
         variants: true,
-        options: true,
+        options: {
+          include: {
+            values: true,
+          },
+        },
         specs: true,
       },
     });
@@ -49,10 +65,10 @@ export class ProductsService {
 
   async create(product: ProductGroupedDto) {
     const defaultSku = generateSKU({
-     productName: product.default.name,
-     options: product.default.options,
-     batch: 0,
-   } );
+      productName: product.default.name,
+      options: product.default.options,
+      batch: 0,
+    });
 
     const defaultVariant = await this.prisma.variant.create({
       data: {
@@ -67,7 +83,11 @@ export class ProductsService {
     });
 
     const otherVariants = product.variants.map((variant, index) => {
-      const sku = generateSKU({productName: variant.name, options: variant.options, batch: index + 1}); 
+      const sku = generateSKU({
+        productName: variant.name,
+        options: variant.options,
+        batch: index + 1,
+      });
       return {
         name: variant.name,
         sku,
