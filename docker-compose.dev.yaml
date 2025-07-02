@@ -1,27 +1,14 @@
 services:
-  backend:
+  backend-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    ports:
-      - 3000:3000
-    develop:
-      watch:
-        - action: sync
-          path: ./src
-          target: /app/src
-          ignore:
-            - node_modules/
-        - action: sync
-          path: ./package.json
-          target: /app/package.json
-        - action: sync
-          path: ./tsconfig.json
-          target: /app/tsconfig.json
     env_file:
       - .env
     depends_on:
       - postgres
+    ports:
+      - 3000:3000
 
   postgres:
     image: postgres:latest

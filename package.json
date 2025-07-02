@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "dev:container": "docker compose -f docker-compose.dev.yaml up --build --watch",
+    "dev:container": "docker compose -f docker-compose.dev.yaml up --watch",
     "prod:container": "docker compose -f docker-compose.prod.yaml up -d --build",
     "check-env": "node check-env.js",
     "start:dev": "nest start --watch",
