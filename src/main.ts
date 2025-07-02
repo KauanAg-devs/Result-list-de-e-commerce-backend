@@ -15,7 +15,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-
+  
   const config = new DocumentBuilder()
     .setTitle('Result-list de e-commerce')
     .setDescription(
