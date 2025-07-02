@@ -18,7 +18,6 @@ export class ProductsController {
   async getByPagination(@Body() productPaginationDTO: ProductPaginationDTO) {
     const { productsPerPage, lastProductReceived } = productPaginationDTO;
     const paginatedProducts = await this.productsService.getByPagination(lastProductReceived, productsPerPage);
-    console.log(paginatedProducts);
     
     return paginatedProducts
   }

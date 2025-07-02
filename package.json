@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "dev:container": "docker compose -f docker-compose.dev.yaml up --watch",
+    "product:seed": "ts-node -r tsconfig-paths/register prisma/seeds/product.seed.ts",
+    "dev:container": "tilt up",
     "prod:container": "docker compose -f docker-compose.prod.yaml up -d --build",
     "check-env": "node check-env.js",
     "start:dev": "nest start --watch",
