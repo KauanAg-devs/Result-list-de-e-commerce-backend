@@ -1,0 +1,8 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"features": {
+		"ghcr.io/lentzi90/features/tilt:0": {
+			"version": "v0.33.17"
+		}
+	}
+}

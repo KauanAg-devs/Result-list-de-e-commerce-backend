@@ -9,6 +9,7 @@ import {
   Res,
   Req,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import { CreateUserDTO } from '../dto/create.user.dto';
@@ -16,6 +17,7 @@ import { Request, Response } from 'express';
 import { SigninDTO } from '../dto/signin.dto';
 import { AccessTokenGuard } from '../guards/access.token.guard';
 import { RefreshTokenGuard } from '../guards/refresh.token.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {

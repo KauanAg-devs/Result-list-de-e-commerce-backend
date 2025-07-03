@@ -2,14 +2,29 @@ services:
   backend-dev:
     build:
       context: .
-      dockerfile: Dockerfile.dev
     env_file:
       - .env
     depends_on:
       - postgres
     ports:
       - 3000:3000
-
+      - 5555:5555
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./.env:/app/.env
+      - /app/node_modules
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: ./package*.json
+        - action: rebuild
+          path: ./prisma
+        - action: rebuild
+          path: ./.env
   postgres:
     image: postgres:latest
     environment:

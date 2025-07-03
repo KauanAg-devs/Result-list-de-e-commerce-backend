@@ -42,14 +42,6 @@ export class UsersService {
     });
   }
 
-  async delete(
-    userProfileWhereUniqueInput: Prisma.UserProfileWhereUniqueInput,
-  ) {
-    return this.prisma.userProfile.delete({
-      where: userProfileWhereUniqueInput,
-    });
-  }
-
   async update(userProfile: UpdateUserDto) {
     return this.prisma.userProfile.update({
       where: { id: userProfile.id },
